@@ -39,6 +39,15 @@ public class Application {
                 System.out.println("————" + friend.getNickname());
             }
         }
+        
+        
+    	try {
+			Thread.currentThread().sleep(50000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+        
         //使用后调用close方法关闭，你也可以使用try-with-resource创建该对象并自动关闭
         try {
             client.close();
