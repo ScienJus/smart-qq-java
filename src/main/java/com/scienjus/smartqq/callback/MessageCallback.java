@@ -11,7 +11,7 @@ import com.scienjus.smartqq.model.Message;
  */
 public interface MessageCallback {
 
-    /**
+    /** 
      * 收到私聊消息后的回调
      * @param message
      */
