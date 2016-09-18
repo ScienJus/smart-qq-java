@@ -31,6 +31,17 @@ public class GroupUser {
     private boolean vip;
 
     private int vipLevel;
+    
+    
+
+	@Override
+	public String toString() {
+		return "GroupUser [nick=" + nick + ", province=" + province
+				+ ", gender=" + gender + ", uin=" + uin + ", country="
+				+ country + ", city=" + city + ", card=" + card
+				+ ", clientType=" + clientType + ", status=" + status
+				+ ", vip=" + vip + ", vipLevel=" + vipLevel + "]";
+	}
 
 	public String getNick() {
 		return nick;
