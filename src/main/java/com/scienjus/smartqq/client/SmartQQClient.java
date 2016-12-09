@@ -4,18 +4,18 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.scienjus.smartqq.callback.MessageCallback;
+import com.scienjus.smartqq.callback.QrCode;
 import com.scienjus.smartqq.constant.ApiURL;
 import com.scienjus.smartqq.model.*;
-import net.dongliu.requests.Client;
-import net.dongliu.requests.HeadOnlyRequestBuilder;
-import net.dongliu.requests.Response;
-import net.dongliu.requests.Session;
+import net.dongliu.requests.*;
 import net.dongliu.requests.exception.RequestException;
+import net.dongliu.requests.struct.Headers;
 import org.apache.log4j.Logger;
 
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.*;
 
 /**
@@ -54,12 +54,15 @@ public class SmartQQClient implements Closeable {
 
     private String psessionid;
 
+    private MessageCallback callback;
+
     //线程开关
     private volatile boolean pollStarted;
 
     public SmartQQClient(final MessageCallback callback) {
         this.client = Client.pooled().maxPerRoute(5).maxTotal(10).build();
         this.session = client.session();
+        this.callback = callback;
         login();
         if (callback != null) {
             this.pollStarted = true;
@@ -73,7 +76,7 @@ public class SmartQQClient implements Closeable {
                         try {
                             pollMessage(callback);
                         } catch (Exception ignore) {
-                            LOGGER.error(ignore.getMessage());
+
                         }
                     }
                 }
@@ -104,9 +107,16 @@ public class SmartQQClient implements Closeable {
             throw new IllegalStateException("二维码保存失败");
         }
         session.get(ApiURL.GET_QR_CODE.getUrl())
-                .addHeader("User-Agent", ApiURL.USER_AGENT)
-                .file(filePath);
-        LOGGER.info("二维码已保存在 " + filePath + " 文件中，请打开手机QQ并扫描二维码");
+                .addHeader("User-Agent", ApiURL.USER_AGENT).handle(new ResponseHandler<Void>() {
+
+
+            @Override
+            public Void handle(int i, Headers headers, InputStream inputStream) throws IOException {
+                callback.receiveQrCode(new QrCode(inputStream));
+                return null;
+            }
+        });
+        LOGGER.info("已得到二维码。");
     }
 
     //登录流程2：校验二维码
@@ -136,6 +146,7 @@ public class SmartQQClient implements Closeable {
 
     //登录流程3：获取ptwebqq
     private void getPtwebqq(String url) {
+        callback.qrFinish();
         LOGGER.debug("开始获取ptwebqq");
 
         Response<String> response = get(ApiURL.GET_PTWEBQQ, url);
@@ -201,7 +212,7 @@ public class SmartQQClient implements Closeable {
             JSONObject message = array.getJSONObject(i);
             String type = message.getString("poll_type");
             if ("message".equals(type)) {
-                callback.onMessage(new Message(message.getJSONObject("value")));
+                callback.onMessage(new Message(message.getJSONObject("value"),this));
             } else if ("group_message".equals(type)) {
                 callback.onGroupMessage(new GroupMessage(message.getJSONObject("value")));
             } else if ("discu_message".equals(type)) {
@@ -571,12 +582,12 @@ public class SmartQQClient implements Closeable {
     }
 
     //获取返回json的result字段（JSONObject类型）
-    private static JSONObject getJsonObjectResult(Response<String> response) {
+    private JSONObject getJsonObjectResult(Response<String> response) {
         return getResponseJson(response).getJSONObject("result");
     }
 
     //获取返回json的result字段（JSONArray类型）
-    private static JSONArray getJsonArrayResult(Response<String> response) {
+    private JSONArray getJsonArrayResult(Response<String> response) {
         return getResponseJson(response).getJSONArray("result");
     }
 
@@ -595,7 +606,7 @@ public class SmartQQClient implements Closeable {
     }
 
     //检验Json返回结果
-    private static JSONObject getResponseJson(Response<String> response) {
+    private JSONObject getResponseJson(Response<String> response) {
         if (response.getStatusCode() != 200) {
             throw new RequestException(String.format("请求失败，Http返回码[%d]", response.getStatusCode()));
         }
@@ -604,6 +615,9 @@ public class SmartQQClient implements Closeable {
         if (retCode == null || retCode != 0) {
             if (retCode != null && retCode == 103) {
                 LOGGER.error("请求失败，Api返回码[103]。你需要进入http://w.qq.com，检查是否能正常接收消息。如果可以的话点击[设置]->[退出登录]后查看是否恢复正常");
+                try {
+                    close();
+                } catch (IOException e) {}
             } else {
                 throw new RequestException(String.format("请求失败，Api返回码[%d]", retCode));
             }
