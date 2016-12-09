@@ -2,6 +2,7 @@ package com.scienjus.smartqq.model;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.scienjus.smartqq.client.SmartQQClient;
 
 /**
  * 消息.
@@ -20,7 +21,11 @@ public class Message {
 
     private Font font;
 
-    public Message(JSONObject json) {
+    private SmartQQClient client;
+
+
+
+    public Message(JSONObject json, SmartQQClient smartQQClient) {
         JSONArray cont = json.getJSONArray("content");
         this.font = cont.getJSONArray(0).getObject(1, Font.class);
 
@@ -33,6 +38,7 @@ public class Message {
 
         this.time = json.getLongValue("time");
         this.userId = json.getLongValue("from_uin");
+        this.client = smartQQClient;
     }
 
     public long getTime() {
@@ -67,4 +73,7 @@ public class Message {
         this.font = font;
     }
 
+    public SmartQQClient getClient() {
+        return client;
+    }
 }
