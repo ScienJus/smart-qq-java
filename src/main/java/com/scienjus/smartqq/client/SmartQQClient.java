@@ -6,10 +6,8 @@ import com.alibaba.fastjson.JSONObject;
 import com.scienjus.smartqq.callback.MessageCallback;
 import com.scienjus.smartqq.constant.ApiURL;
 import com.scienjus.smartqq.model.*;
-import net.dongliu.requests.Client;
-import net.dongliu.requests.HeadOnlyRequestBuilder;
-import net.dongliu.requests.Response;
-import net.dongliu.requests.Session;
+import com.scienjus.smartqq.frame.*;
+import net.dongliu.requests.*;
 import net.dongliu.requests.exception.RequestException;
 import net.dongliu.requests.struct.Cookie;
 import org.apache.log4j.Logger;
@@ -35,7 +33,7 @@ public class SmartQQClient implements Closeable {
 
     //发生ngnix 404 时的重试次数
     private static int retryTimesOnFailed = 3;
-    
+
     //消息id，这个好像可以随便设置，所以设成全局的
     private static long MESSAGE_ID = 43690001;
 
@@ -53,6 +51,9 @@ public class SmartQQClient implements Closeable {
 
     //二维码令牌
     private String qrsig;
+
+    //二维码窗口
+    private QRCodeFrame qrframe = new QRCodeFrame();
 
     //鉴权参数
     private String ptwebqq;
@@ -102,9 +103,7 @@ public class SmartQQClient implements Closeable {
         getVfwebqq();
         getUinAndPsessionid();
         getFriendStatus(); //修复Api返回码[103]的问题
-        //登录成功欢迎语
-        UserInfo userInfo = getAccountInfo();
-        LOGGER.info(userInfo.getNick() + "，欢迎！");
+        LOGGER.info(getAccountInfo().getNick() + "，欢迎！"); //登录成功欢迎语
     }
 
     //登录流程1：获取二维码
@@ -128,15 +127,7 @@ public class SmartQQClient implements Closeable {
             }
         }
         LOGGER.info("二维码已保存在 " + filePath + " 文件中，请打开手机QQ并扫描二维码");
-
-        //使用默认软件打开二维码
-        Desktop desk = Desktop.getDesktop();
-        try {
-            File file = new File(filePath);
-            desk.open(file);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        qrframe.showQRCode(filePath); //显示二维码
     }
 
     //用于生成ptqrtoken的哈希函数
@@ -160,12 +151,13 @@ public class SmartQQClient implements Closeable {
                 for (String content : result.split("','")) {
                     if (content.startsWith("http")) {
                         LOGGER.info("正在登录，请稍后");
-
+                        qrframe.dispose(); //认证成功后释放窗体资源
                         return content;
                     }
                 }
             } else if (result.contains("已失效")) {
                 LOGGER.info("二维码已失效，尝试重新获取二维码");
+                qrframe.waitForQRCode(); //等待新的二维码
                 getQRCode();
             }
         }
@@ -188,7 +180,7 @@ public class SmartQQClient implements Closeable {
         int retryTimes4Vfwebqq = retryTimesOnFailed;
         while (response.getStatusCode() == 404 && retryTimes4Vfwebqq > 0) {
             response = get(ApiURL.GET_VFWEBQQ, ptwebqq);
-            retryTimes4Vfwebqq--; 
+            retryTimes4Vfwebqq--;
         }
         this.vfwebqq = getJsonObjectResult(response).getString("vfwebqq");
     }
@@ -680,7 +672,7 @@ public class SmartQQClient implements Closeable {
         } else if (retCode != 0) {
             switch (retCode) {
                 case 103: {
-                    LOGGER.error("请求失败，Api返回码[103]。你需要进入http://w.qq.com，检查是否能正常接收消息。如果可以的话点击[设置]->[退出登录]后查看是否恢复正常"); 
+                    LOGGER.error("请求失败，Api返回码[103]。你需要进入http://w.qq.com，检查是否能正常接收消息。如果可以的话点击[设置]->[退出登录]后查看是否恢复正常");
                     break;
                 }
                 case 100100: {
