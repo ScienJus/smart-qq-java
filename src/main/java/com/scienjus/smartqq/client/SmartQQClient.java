@@ -64,7 +64,10 @@ public class SmartQQClient implements Closeable {
     //线程开关
     private volatile boolean pollStarted;
 
-
+    public SmartQQClient() {
+    	this(null);
+    }
+    
     public SmartQQClient(final MessageCallback callback) {
         this.client = Client.pooled().maxPerRoute(5).maxTotal(10).build();
         this.session = client.session();
