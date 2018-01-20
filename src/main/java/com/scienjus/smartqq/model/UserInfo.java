@@ -13,6 +13,8 @@ public class UserInfo {
 
     private Birthday birthday;
 
+    private int face;
+    
     private String phone;
 
     private String occupation;
@@ -22,8 +24,13 @@ public class UserInfo {
     private String uin;
 
     private int blood;
+    
+    // 星座
+    private int constel;
 
     private String lnick;   //签名
+    
+    private String vfwebqq;
 
     private String homepage;
 
@@ -201,5 +208,29 @@ public class UserInfo {
     public void setMobile(String mobile) {
         this.mobile = mobile;
     }
+
+	public int getFace() {
+		return face;
+	}
+
+	public void setFace(int face) {
+		this.face = face;
+	}
+
+	public int getConstel() {
+		return constel;
+	}
+
+	public void setConstel(int constel) {
+		this.constel = constel;
+	}
+
+	public String getVfwebqq() {
+		return vfwebqq;
+	}
+
+	public void setVfwebqq(String vfwebqq) {
+		this.vfwebqq = vfwebqq;
+	}
 
 }

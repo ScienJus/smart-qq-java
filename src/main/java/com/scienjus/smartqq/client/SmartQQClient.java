@@ -14,7 +14,6 @@ import net.dongliu.requests.exception.RequestException;
 import net.dongliu.requests.struct.Cookie;
 import org.apache.log4j.Logger;
 
-import java.awt.Desktop;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -65,7 +64,10 @@ public class SmartQQClient implements Closeable {
     //线程开关
     private volatile boolean pollStarted;
 
-
+    public SmartQQClient() {
+    	this(null);
+    }
+    
     public SmartQQClient(final MessageCallback callback) {
         this.client = Client.pooled().maxPerRoute(5).maxTotal(10).build();
         this.session = client.session();
@@ -121,7 +123,7 @@ public class SmartQQClient implements Closeable {
         } catch (IOException e) {
             throw new IllegalStateException("二维码保存失败");
         }
-        Response response = session.get(ApiURL.GET_QR_CODE.getUrl())
+        Response<File> response = session.get(ApiURL.GET_QR_CODE.getUrl())
                 .addHeader("User-Agent", ApiURL.USER_AGENT)
                 .file(filePath);
         for (Cookie cookie : response.getCookies()) {
